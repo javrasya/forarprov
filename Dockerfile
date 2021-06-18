@@ -1,7 +1,10 @@
 FROM joyzoursky/python-chromedriver:3.8-alpine3.10-selenium
 
+COPY ./requirements.txt /usr/workspace/requirements.txt
 COPY ./main.py /usr/workspace/main.py
 
-RUN pip install selenium
+WORKDIR /usr/workspace/
 
-CMD ["python", "/usr/workspace/main.py"]
+RUN pip install -r requirements.txt
+
+CMD ["python", "main.py"]

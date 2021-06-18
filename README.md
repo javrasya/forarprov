@@ -7,10 +7,12 @@ docker build . -t forarprov:latest
 # Run
 
 ```bash
-docker run -it \
+docker run -it -d \
+  --name forarprov \
   --env PLACES='Farsta,Sollentuna,Tullinge,Nynäshamn,Södertälje' \
-  --env SSN='19900921XXXX' \
+  --env SSN='<replace-with-your-ssn>' \
   --env START='2021-06-18' \
-  --env END='2021-12-30' \
-  forarprov:latest 
+  --env END='2021-06-24' \
+  --env TELEGRAM_TOKEN='<replace-with-telegram-bot-token>' \
+  forarprov:latest
 ```
