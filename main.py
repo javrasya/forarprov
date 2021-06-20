@@ -12,6 +12,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import TimeoutException
 
 
 class GracefulKiller:
@@ -43,8 +44,7 @@ def send_telegram_message(bot_message):
         requests.get(
             f"https://api.telegram.org/bot{telegram_token}/sendMessage?chat_id={chat_id}&parse_mode=Markdown&text={bot_message}")
 
-
-if __name__ == '__main__':
+def main():
     options = Options()
     options.add_argument("user-agent=User-Agent: my-agent")
     options.add_argument('--disable-gpu')
@@ -85,27 +85,37 @@ if __name__ == '__main__':
 
     driver.set_window_size(50, 800)
     driver.get("https://fp.trafikverket.se/boka/#/licence")
+    print("The site is fetched...")
+    try:
+        wait_and_get(By.ID, 'social-security-number-input').send_keys(ssn)
+        wait_and_get(By.XPATH, "//a[@title='B']").click()
+        wait_and_get(By.CLASS_NAME, "alreadyBookedExamination").click()
+        killer = GracefulKiller()
+        while not killer.kill_now:
+            for i, place in enumerate(places):
+                earliest = search_earliest(place, i == 0)
+                valid_earliest = earliest if earliest and starting_time <= earliest <= ending_time else None
+                previously_found_date = found_items.get(place, None)
 
-    wait_and_get(By.ID, 'social-security-number-input').send_keys(ssn)
-    wait_and_get(By.XPATH, "//a[@title='B']").click()
-    wait_and_get(By.CLASS_NAME, "alreadyBookedExamination").click()
-    killer = GracefulKiller()
-    while not killer.kill_now:
-        for i, place in enumerate(places):
-            earliest = search_earliest(place, i == 0)
-            valid_earliest = earliest if earliest and starting_time <= earliest <= ending_time else None
-            previously_found_date = found_items.get(place, None)
-
-            if not valid_earliest and previously_found_date:
-                send_telegram_message(f"❌ Previously found date: {previously_found_date} in `{place}` is no longer available")
-
-            elif valid_earliest:
-                found_items[place] = valid_earliest
-                if previously_found_date and valid_earliest > previously_found_date:
+                if not valid_earliest and previously_found_date:
                     send_telegram_message(f"❌ Previously found date: {previously_found_date} in `{place}` is no longer available")
-                if valid_earliest != previously_found_date:
-                    send_telegram_message(f"🎉 Found new slot in `{place}`: {valid_earliest}, `{(valid_earliest - datetime.now()).days} days` from now")
-        wait_before_next = random.randint(60 * 3, 60 * 10)
-        print(f"Search is complete, will start another in {wait_before_next} seconds")
-        sleep(wait_before_next)
+                    found_items[place] = None
+
+                elif valid_earliest:
+                    found_items[place] = valid_earliest
+                    if previously_found_date and valid_earliest > previously_found_date:
+                        send_telegram_message(f"❌ Previously found date: {previously_found_date} in `{place}` is no longer available")
+                    if valid_earliest != previously_found_date:
+                        send_telegram_message(f"🎉 Found new slot in `{place}`: {valid_earliest}, `{(valid_earliest - datetime.now()).days} days` from now")
+            wait_before_next = random.randint(60 * 3, 60 * 10)
+            print(f"Search is complete, will start another in {wait_before_next} seconds")
+            sleep(wait_before_next)
+    except TimeoutException as e:
+        print("Failed to load. Restarting the whole search...")
+        driver.quit()
+        main()
     driver.quit()
+
+if __name__ == '__main__':
+    print("A new search started...")
+    main()
