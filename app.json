@@ -1,0 +1,12 @@
+{
+  "name": "forarprov",
+  "description": "A barebones Python app, which can easily be deployed to Heroku.",
+  "image": "heroku/python",
+  "repository": "https://github.com/javrasya/forarprov",
+  "keywords": ["python"],
+  "addons": [ ],
+  "env": {
+  },
+  "environments": {
+  }
+}

@@ -12,7 +12,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import TimeoutException
 
 
 class GracefulKiller:
@@ -44,6 +43,7 @@ def send_telegram_message(bot_message):
         requests.get(
             f"https://api.telegram.org/bot{telegram_token}/sendMessage?chat_id={chat_id}&parse_mode=Markdown&text={bot_message}")
 
+
 def main():
     options = Options()
     options.add_argument("user-agent=User-Agent: my-agent")
@@ -52,17 +52,13 @@ def main():
     options.headless = True
     driver = webdriver.Chrome(options=options)
 
-
     def wait_and_get(search_type, value, multiple=False):
         if multiple:
             return WebDriverWait(driver, 60).until(ec.visibility_of_any_elements_located((search_type, value)))
         else:
             return WebDriverWait(driver, 60).until(ec.visibility_of_element_located((search_type, value)))
 
-
-    already_searched_before = False
     not_found_text = 'Hittar inga lediga tider som matchar dina val.'
-
 
     def search_earliest(place, first_time=False):
         wait_and_get(By.XPATH, "//button[@data-bind='click:selectLocation']").click()
@@ -82,14 +78,13 @@ def main():
                 earliest_date = earliest_date_match.group(1)
                 return datetime.strptime(earliest_date, '%Y-%m-%d %H:%M')
 
-
     driver.set_window_size(50, 800)
     driver.get("https://fp.trafikverket.se/boka/#/licence")
     print("The site is fetched...")
     try:
         wait_and_get(By.ID, 'social-security-number-input').send_keys(ssn)
         wait_and_get(By.XPATH, "//a[@title='B']").click()
-        wait_and_get(By.CLASS_NAME, "alreadyBookedExamination").click()
+        wait_and_get(By.XPATH, "//div[contains(@class,'alreadyBookedExamination') or ( contains(@class, 'suggestedReservations') and contains(.,'Körprov') )]").click()
         killer = GracefulKiller()
         while not killer.kill_now:
             for i, place in enumerate(places):
@@ -110,11 +105,12 @@ def main():
             wait_before_next = random.randint(60 * 3, 60 * 10)
             print(f"Search is complete, will start another in {wait_before_next} seconds")
             sleep(wait_before_next)
-    except TimeoutException as e:
+    except Exception as e:
         print("Failed to load. Restarting the whole search...")
         driver.quit()
         main()
     driver.quit()
+
 
 if __name__ == '__main__':
     print("A new search started...")
