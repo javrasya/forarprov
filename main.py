@@ -45,6 +45,8 @@ def send_telegram_message(bot_message):
 
 
 def main():
+    send_telegram_message(f"A new search started in {places} between {starting_time} and {ending_time}...")
+
     options = Options()
     options.add_argument("user-agent=User-Agent: my-agent")
     options.add_argument('--disable-gpu')
@@ -113,5 +115,4 @@ def main():
 
 
 if __name__ == '__main__':
-    print("A new search started...")
     main()
